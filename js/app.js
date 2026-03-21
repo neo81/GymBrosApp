@@ -453,25 +453,11 @@ async function initApp() {
   if (session) {
     currentUserId = session.user.id;
 
-    // Pre-fill name from Google metadata if no profile yet
-    if (!S.profile && session.user.user_metadata) {
-      const meta = session.user.user_metadata;
-      const firstName = (meta.full_name || meta.name || '').split(' ')[0];
-      if (firstName) {
-        S.profile = {
-          name: firstName,
-          age: 0, weight: 0, height: 0, sex: '',
-          createdAt: dateStrAR(),
-          googleAvatar: meta.avatar_url || meta.picture || null,
-        };
-      }
-    }
-
     try {
       const cloudData = await dbLoadAllUserData(currentUserId);
       if (cloudData) hydrateFromCloud(cloudData);
 
-      // Ensure Google avatar is preserved even after cloud load
+      // Preserve Google avatar if not already in profile
       const googleMeta = session.user.user_metadata;
       if (googleMeta) {
         const avatarUrl = googleMeta.avatar_url || googleMeta.picture;
@@ -2329,7 +2315,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-register').addEventListener('click', () => {
     document.querySelectorAll('.sex-btn').forEach(b => b.classList.remove('selected'));
     clearFormErrors();
-    // Pre-fill name from existing partial profile (e.g. from Google login)
+    // Pre-fill fields if editing existing profile
     const existing = S.profile;
     document.getElementById('reg-name').value = existing?.name || '';
     document.getElementById('reg-age').value = existing?.age || '';
