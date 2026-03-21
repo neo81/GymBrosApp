@@ -380,16 +380,36 @@ function getTheme() {
 //  AUTH + INIT
 // =============================================
 
+async function pushLocalToCloud() {
+  if (!currentUserId || !sb) return;
+  const profile  = S.profile;
+  const routines = S.routines;
+  const history  = S.history;
+  const favs     = S.favs;
+  await Promise.all([
+    profile  ? dbSaveProfile(currentUserId, profile)   : Promise.resolve(),
+    routines?.length ? dbSaveRoutines(currentUserId, routines) : Promise.resolve(),
+    Object.keys(history || {}).length ? dbSaveHistory(currentUserId, history) : Promise.resolve(),
+    favs?.length ? dbSaveFavs(currentUserId, favs) : Promise.resolve(),
+  ]).catch(e => console.warn('[DB] pushLocalToCloud error:', e));
+}
+
 function clearLocalData() {
   ['gymbros_profile','gymbros_routines','gymbros_history','gymbros_favs','gymbros_custom_ex']
     .forEach(k => localStorage.removeItem(k));
 }
 
 function hydrateFromCloud(data) {
-  if (data.profile)  localStorage.setItem('gymbros_profile',  JSON.stringify(data.profile));
-  if (data.routines) localStorage.setItem('gymbros_routines', JSON.stringify(data.routines));
-  if (data.history)  localStorage.setItem('gymbros_history',  JSON.stringify(data.history));
-  if (data.favs)     localStorage.setItem('gymbros_favs',     JSON.stringify(data.favs));
+  // Only overwrite local data if cloud has something non-empty
+  // This prevents cloud nulls from wiping good local data
+  if (data.profile && data.profile.name)
+    localStorage.setItem('gymbros_profile', JSON.stringify(data.profile));
+  if (data.routines && data.routines.length)
+    localStorage.setItem('gymbros_routines', JSON.stringify(data.routines));
+  if (data.history && Object.keys(data.history).length)
+    localStorage.setItem('gymbros_history', JSON.stringify(data.history));
+  if (data.favs && data.favs.length)
+    localStorage.setItem('gymbros_favs', JSON.stringify(data.favs));
 }
 
 async function initApp() {
@@ -432,6 +452,7 @@ async function initApp() {
 
   if (session) {
     currentUserId = session.user.id;
+
     // Pre-fill name from Google metadata if no profile yet
     if (!S.profile && session.user.user_metadata) {
       const meta = session.user.user_metadata;
@@ -445,11 +466,25 @@ async function initApp() {
         };
       }
     }
+
     try {
+      // If fresh OAuth login (had token in hash), push local data first
+      // then merge with cloud (cloud takes priority for real completed data)
+      if (hasToken) await pushLocalToCloud();
+
       const cloudData = await dbLoadAllUserData(currentUserId);
       if (cloudData) hydrateFromCloud(cloudData);
+
+      // Ensure Google avatar is preserved even after cloud load
+      const googleMeta = session.user.user_metadata;
+      if (googleMeta && S.profile) {
+        const avatarUrl = googleMeta.avatar_url || googleMeta.picture;
+        if (avatarUrl && !S.profile.googleAvatar) {
+          S.profile = { ...S.profile, googleAvatar: avatarUrl };
+        }
+      }
     } catch (e) {
-      console.warn('Cloud load failed, using local data:', e);
+      console.warn('Cloud sync failed, using local data:', e);
     }
   }
 
@@ -513,8 +548,11 @@ async function handleLogout() {
     okLabel: 'Cerrar sesión',
     cb: async () => {
       closeConfirm();
+      // Push all local data to cloud before clearing
+      showToast('Guardando datos...');
+      await pushLocalToCloud();
       await signOut();
-      // onAuthStateChange fires SIGNED_OUT and clears data
+      // onAuthStateChange fires SIGNED_OUT → clearLocalData + screen-welcome
     }
   });
 }
@@ -564,11 +602,11 @@ function saveProfile() {
     createdAt: existing?.createdAt || dateStrAR(),
     googleAvatar: existing?.googleAvatar || null,
   };
-  // Force immediate cloud sync (don't wait for debounce)
+  // Force immediate cloud sync — push everything
   if (currentUserId) {
-    dbSaveProfile(currentUserId, S.profile)
-      .then(() => console.log('[DB] profile saved ✅'))
-      .catch(e => { console.error('[DB] saveProfile failed:', e); showToast('⚠️ Error al guardar: ' + e.message); });
+    pushLocalToCloud()
+      .then(() => console.log('[DB] all data synced ✅'))
+      .catch(e => showToast('⚠️ Sin conexión. Datos guardados localmente.'));
   }
   renderHome();
   if (isRealExisting) {
@@ -747,7 +785,7 @@ function saveInlineEdit() {
   if (hRaw      && (isNaN(height) || height < 100|| height > 250)){ showToast('Altura entre 100 y 250 cm.'); return; }
 
   S.profile = { ...S.profile, name, age, weight, height, sex };
-  if (currentUserId) dbSaveProfile(currentUserId, S.profile).catch(e => console.warn('Profile sync:', e));
+  if (currentUserId) pushLocalToCloud().catch(e => console.warn('[DB] sync error:', e));
   closeEditProfileModal();
   renderHome();
   renderProfileScreen();
