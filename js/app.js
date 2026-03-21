@@ -711,7 +711,7 @@ function toggleProfileEdit(open) {
 }
 
 function selectEditSex(btn) {
-  document.querySelectorAll('#edit-sex-selector .sex-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#modal-edit-sex-selector .sex-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
 }
 
@@ -768,7 +768,6 @@ function confirmDeleteProfile() {
   });
 }
 
-function openEditProfile() { toggleProfileEdit(true); }
 
 // =============================================
 //  HOME
