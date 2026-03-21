@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0F0F1A" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="GymBros" />
+  <title>GymBros</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<!-- ===================== SCREEN: LOADING ===================== -->
+<div id="screen-loading" class="screen active">
+  <div class="loading-content">
+    <span class="loading-bolt">⚡</span>
+    <p class="loading-text">GymBros</p>
+    <div class="loading-spinner"></div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: WELCOME ===================== -->
+<div id="screen-welcome" class="screen">
+  <div class="welcome-bg">
+    <div class="welcome-orb orb-1"></div>
+    <div class="welcome-orb orb-2"></div>
+  </div>
+  <div class="welcome-content">
+    <div class="welcome-logo">
+      <span class="welcome-bolt">⚡</span>
+      <h1 class="welcome-title">GYM<span class="accent">BROS</span></h1>
+      <p class="welcome-tagline">Tu entrenamiento, inteligente.</p>
+    </div>
+    <div class="welcome-actions">
+      <button class="btn-google" id="btn-google-login" onclick="handleGoogleLogin()">
+        <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Continuar con Google
+      </button>
+      <button class="btn-ghost btn-large" id="btn-register">Usar sin cuenta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: REGISTER ===================== -->
+<div id="screen-register" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-welcome-from-register">‹ Atrás</button>
+    <span class="topbar-title">Mi Perfil</span>
+    <span></span>
+  </div>
+  <div class="register-intro">
+    <div class="register-emoji">🏋️</div>
+    <p class="register-intro-text">Contanos sobre vos para personalizar tu experiencia.</p>
+  </div>
+  <div class="form-section">
+    <label class="form-label">¿Cómo te llamás?</label>
+    <input type="text" id="reg-name" class="form-input" placeholder="Tu nombre" autocomplete="off" />
+  </div>
+  <div class="form-row">
+    <div class="form-section form-half">
+      <label class="form-label">Edad</label>
+      <div class="input-unit-wrap">
+        <input type="number" id="reg-age" class="form-input" placeholder="25" inputmode="numeric" min="10" max="99" />
+        <span class="input-unit">años</span>
+      </div>
+    </div>
+    <div class="form-section form-half">
+      <label class="form-label">Sexo</label>
+      <div class="sex-selector" id="sex-selector">
+        <button class="sex-btn" data-sex="M">♂ Masc</button>
+        <button class="sex-btn" data-sex="F">♀ Fem</button>
+      </div>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-section form-half">
+      <label class="form-label">Peso</label>
+      <div class="input-unit-wrap">
+        <input type="number" id="reg-weight" class="form-input" placeholder="75" inputmode="decimal" step="0.5" />
+        <span class="input-unit">kg</span>
+      </div>
+    </div>
+    <div class="form-section form-half">
+      <label class="form-label">Altura</label>
+      <div class="input-unit-wrap">
+        <input type="number" id="reg-height" class="form-input" placeholder="175" inputmode="numeric" />
+        <span class="input-unit">cm</span>
+      </div>
+    </div>
+  </div>
+  <div class="form-section">
+    <button class="btn-primary btn-large" id="btn-save-profile">Empezar a entrenar 💪</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: HOME ===================== -->
+<div id="screen-home" class="screen">
+  <div class="home-header">
+    <div class="home-greeting-row">
+      <div>
+        <p class="home-greeting" id="home-greeting">¡Hola!</p>
+        <div class="logo-wrap">
+          <span class="logo-icon">⚡</span>
+          <span class="logo-text">Gym<span class="logo-accent">Bros</span></span>
+        </div>
+      </div>
+      <div class="home-header-actions">
+        <button class="theme-toggle-btn" id="btn-toggle-theme" title="Cambiar tema">
+          <span class="theme-icon-dark">🌙</span>
+          <span class="theme-icon-light">☀️</span>
+        </button>
+        <button class="profile-avatar-btn" id="btn-open-profile" title="Mi perfil">
+          <span id="profile-avatar-letter">?</span>
+        </button>
+      </div>
+    </div>
+    <div class="home-stats-row" id="home-stats-row"></div>
+  </div>
+  <div class="home-actions">
+    <button class="btn-primary btn-large" id="btn-new-routine">
+      <span class="btn-icon">＋</span> Nueva Rutina
+    </button>
+  </div>
+  <div class="section-title-row">
+    <span class="section-title">Mis Rutinas</span>
+  </div>
+  <div id="routines-list" class="routines-list"></div>
+</div>
+
+<!-- ===================== SCREEN: PROFILE ===================== -->
+<div id="screen-profile" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-home-from-profile">‹ Atrás</button>
+    <span class="topbar-title">Mi Perfil</span>
+    <button class="topbar-action" id="btn-edit-profile">Editar</button>
+  </div>
+  <div id="profile-content"></div>
+</div>
+
+<!-- ===================== SCREEN: CREATE / EDIT ROUTINE ===================== -->
+<div id="screen-create-routine" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-to-home-cr">‹ Atrás</button>
+    <span class="topbar-title" id="cr-title">Nueva Rutina</span>
+    <button class="topbar-action" id="save-routine-btn">Guardar</button>
+  </div>
+  <div class="form-section greeting-section" id="cr-greeting-section"></div>
+  <div class="form-section">
+    <label class="form-label">Nombre de la Rutina</label>
+    <input type="text" id="routine-name" class="form-input" placeholder="Ej: Fuerza + Volumen" />
+  </div>
+  <div class="form-section">
+    <label class="form-label">Días de Entrenamiento</label>
+    <div class="days-grid" id="days-selector">
+      <button class="day-btn day-btn-core" data-day="CORE">Core</button>
+      <button class="day-btn" data-day="Lunes">Lun</button>
+      <button class="day-btn" data-day="Martes">Mar</button>
+      <button class="day-btn" data-day="Miércoles">Mié</button>
+      <button class="day-btn" data-day="Jueves">Jue</button>
+      <button class="day-btn" data-day="Viernes">Vie</button>
+      <button class="day-btn" data-day="Sábado">Sáb</button>
+      <button class="day-btn" data-day="Domingo">Dom</button>
+      <button class="day-btn day-btn-all" data-day="Todos">Todos</button>
+    </div>
+  </div>
+  <div class="form-section" id="days-exercises-section" style="display:none;">
+    <div class="day-tabs-header">
+      <label class="form-label" style="margin-bottom:0">Ejercicios por Día</label>
+    </div>
+    <div id="day-tabs" class="day-tabs"></div>
+    <div id="day-exercises-panel" class="day-exercises-panel">
+      <div class="no-day-selected">Seleccioná un día para agregar ejercicios.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: SELECT MUSCLE ===================== -->
+<div id="screen-select-muscle" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-to-routine">‹ Atrás</button>
+    <span class="topbar-title">Añadir Ejercicio</span>
+    <span></span>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="muscle-search" class="search-input" placeholder="Buscar grupo muscular..." />
+  </div>
+  <div class="body-figure-wrap">
+    <div class="body-figure-container" id="body-figure-container"></div>
+    <div class="rotate-btn-wrap">
+      <button class="rotate-btn" id="rotate-body-btn">
+        <span class="rotate-icon">⟳</span><span>GIRAR</span>
+      </button>
+    </div>
+  </div>
+  <div class="muscle-chips" id="muscle-chips"></div>
+</div>
+
+<!-- ===================== SCREEN: EXERCISE LIST ===================== -->
+<div id="screen-exercise-list" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-to-muscle">‹ Atrás</button>
+    <span class="topbar-title" id="exercise-list-title">Ejercicios</span>
+    <span></span>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="exercise-search" class="search-input" placeholder="Buscar ejercicio..." />
+  </div>
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-filter="all">Todos</button>
+    <button class="filter-tab" data-filter="muscle" id="filter-muscle-tab">Grupo</button>
+    <button class="filter-tab" data-filter="favs">⭐ Favs</button>
+  </div>
+  <div id="exercises-grid" class="exercises-grid"></div>
+  <!-- Manual add button -->
+  <div class="manual-add-wrap">
+    <button class="btn-ghost btn-block" id="btn-add-manual-exercise">
+      ✏️ No encuentro el ejercicio — agregar manual
+    </button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: CONFIGURE EXERCISE ===================== -->
+<div id="screen-configure-exercise" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-to-exercises">‹ Atrás</button>
+    <span class="topbar-title">Configurar Ejercicio</span>
+    <button class="topbar-action" id="save-exercise-btn">GUARDAR</button>
+  </div>
+
+  <!-- Exercise header -->
+  <div class="cfg-ex-header">
+    <div class="cfg-ex-thumb" id="anim-placeholder-small"></div>
+    <div class="cfg-ex-info">
+      <div class="cfg-ex-name" id="exercise-header-name">—</div>
+      <div class="cfg-ex-muscles-label">OBJETIVO:</div>
+      <div class="cfg-ex-muscles" id="exercise-header-muscles">—</div>
+    </div>
+    <button class="cfg-info-btn" id="info-btn" title="Más información">ⓘ</button>
+  </div>
+
+  <!-- Unit + action bar -->
+  <div class="cfg-toolbar">
+    <div class="cfg-unit-group" id="unit-btn-group">
+      <span class="cfg-unit-label">UNIDAD:</span>
+      <button class="cfg-unit-btn active" data-unit="kg">KG</button>
+      <button class="cfg-unit-btn" data-unit="min">MIN</button>
+      <button class="cfg-unit-btn" data-unit="seg">SEG</button>
+    </div>
+    <button class="cfg-toolbar-btn" id="add-note-btn">📝 Nota</button>
+  </div>
+
+  <!-- Instructions panel -->
+  <div id="instructions-panel" class="instructions-panel" style="display:none;">
+    <div class="instructions-header">
+      <span class="instructions-title">📋 Pasos de ejecución</span>
+      <button id="close-instructions-btn" class="instructions-close">✕</button>
+    </div>
+    <ol class="instructions-list" id="instructions-list"></ol>
+  </div>
+
+  <!-- Note area -->
+  <div id="note-area" class="note-area" style="display:none;">
+    <textarea class="note-input" placeholder="Ej: Enfocarse en la fase excéntrica..." id="exercise-note"></textarea>
+  </div>
+
+  <!-- Series header -->
+  <div class="cfg-series-header">
+    <span class="cfg-series-header-label">DATOS SERIES</span>
+    <button class="cfg-add-series-btn" id="add-series-btn">＋ AGREGAR SERIE</button>
+  </div>
+
+  <!-- Series rows -->
+  <div class="cfg-series-list" id="series-list"></div>
+</div>
+
+<!-- ===================== SCREEN: ROUTINE DETAIL / EDIT ===================== -->
+<div id="screen-routine-detail" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-to-home-from-detail">‹ Mis Rutinas</button>
+    <span class="topbar-title" id="routine-detail-title" style="display:none;"></span>
+    <div class="topbar-right-group">
+      <button class="topbar-rest-btn" id="btn-open-rest" title="Temporizador de descanso">
+        🔄 Descanso
+      </button>
+      <button class="stopwatch-topbar-btn" id="btn-open-stopwatch" title="Cronómetro">
+        <span class="stopwatch-icon">⏱</span>
+        <span class="stopwatch-topbar-time" id="stopwatch-topbar-time" style="display:none;">00:00</span>
+      </button>
+      <button class="topbar-action" id="edit-routine-btn">✏️ Editar</button>
+    </div>
+  </div>
+  <div id="routine-detail-content"></div>
+  <div class="detail-bottom-actions">
+    <button class="btn-danger-outline" id="delete-routine-btn">🗑 Eliminar Rutina</button>
+  </div>
+</div>
+
+<!-- ===================== SCREEN: PROGRESS / CHARTS ===================== -->
+<div id="screen-progress" class="screen">
+  <div class="topbar">
+    <button class="topbar-back" id="back-from-progress">‹ Atrás</button>
+    <span class="topbar-title">Progreso</span>
+    <span></span>
+  </div>
+  <div id="progress-content"></div>
+</div>
+
+<!-- ===================== MODAL: ADD MANUAL EXERCISE ===================== -->
+<div id="modal-manual-exercise" class="modal-overlay modal-centered" style="display:none;">
+  <div class="modal-card">
+    <button class="modal-close" id="close-manual-modal">✕</button>
+    <h3 class="modal-title">Agregar ejercicio manual</h3>
+    <div class="form-section" style="padding:0 0 12px;">
+      <label class="form-label">Nombre del ejercicio</label>
+      <input type="text" id="manual-ex-name" class="form-input" placeholder="Ej: Press Banca con Cadenas" />
+    </div>
+    <div class="form-section" style="padding:0 0 12px;">
+      <label class="form-label">Grupo muscular</label>
+      <select id="manual-ex-muscle" class="form-input form-select">
+        <option value="">Seleccionar...</option>
+        <option value="hombros">Hombros</option>
+        <option value="pectorales">Pectorales</option>
+        <option value="biceps">Bíceps</option>
+        <option value="triceps">Tríceps</option>
+        <option value="dorsales">Dorsales</option>
+        <option value="trapecio">Trapecio</option>
+        <option value="abdomen">Abdomen</option>
+        <option value="oblicuos">Oblicuos</option>
+        <option value="lumbares">Lumbares</option>
+        <option value="gluteos">Glúteos</option>
+        <option value="cuadriceps">Cuádriceps</option>
+        <option value="isquiotibiales">Isquiotibiales</option>
+        <option value="abductores">Abductores</option>
+        <option value="aductores">Aductores</option>
+        <option value="pantorrillas">Pantorrillas</option>
+        <option value="antebrazo">Antebrazo</option>
+      </select>
+    </div>
+    <div class="form-section" style="padding:0;">
+      <label class="form-label">Emoji (opcional)</label>
+      <input type="text" id="manual-ex-emoji" class="form-input" placeholder="🏋️" maxlength="4" />
+    </div>
+    <button class="btn-primary btn-block" id="btn-save-manual-exercise" style="margin-top:16px;">Agregar ejercicio</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: EXERCISE INFO ===================== -->
+<div id="modal-exercise-info" class="modal-overlay modal-centered" style="display:none;">
+  <div class="modal-card">
+    <button class="modal-close" id="close-info-modal">✕</button>
+    <div class="modal-anim" id="modal-anim-container"></div>
+    <h2 class="modal-exercise-name" id="modal-exercise-name">—</h2>
+    <div class="modal-muscles-label">Músculos trabajados</div>
+    <div class="modal-muscles-list" id="modal-muscles-list"></div>
+    <p class="modal-exercise-desc" id="modal-exercise-desc">—</p>
+    <div id="modal-instructions-wrap" style="display:none;">
+      <div class="modal-muscles-label" style="margin-top:14px;">Pasos de ejecución</div>
+      <ol class="modal-instructions-list" id="modal-instructions-list"></ol>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CONFIRM DELETE ===================== -->
+<div id="modal-confirm" class="modal-overlay modal-centered" style="display:none;">
+  <div class="modal-card modal-confirm-card">
+    <div class="modal-confirm-icon" id="confirm-icon">⚠️</div>
+    <h3 class="modal-confirm-title" id="confirm-title">¿Confirmar?</h3>
+    <p class="modal-confirm-msg" id="confirm-msg"></p>
+    <div class="modal-confirm-actions">
+      <button class="btn-ghost" id="confirm-cancel-btn">Cancelar</button>
+      <button class="btn-danger" id="confirm-ok-btn">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: REST TIMER ===================== -->
+<div id="modal-rest-timer" class="modal-overlay modal-centered" style="display:none;">
+  <div class="modal-card timer-modal-card">
+    <button class="modal-close" id="close-timer-modal">✕</button>
+    <h3 class="timer-title">Descanso entre series</h3>
+    <div class="timer-display" id="timer-display">01:00</div>
+    <div class="timer-controls">
+      <button class="timer-ctrl-btn" data-delta="-30">−30s</button>
+      <button class="timer-ctrl-btn" data-delta="-15">−15s</button>
+      <button class="timer-ctrl-btn" data-delta="15">+15s</button>
+      <button class="timer-ctrl-btn" data-delta="30">+30s</button>
+    </div>
+    <button class="btn-primary btn-block" id="start-timer-btn">Iniciar Temporizador</button>
+  </div>
+</div>
+
+<!-- ===================== MODAL: STOPWATCH ===================== -->
+<div id="modal-stopwatch" class="modal-overlay modal-centered" style="display:none;">
+  <div class="modal-card stopwatch-modal-card">
+    <button class="modal-close" id="close-stopwatch-modal">✕</button>
+    <h3 class="stopwatch-title">Cronómetro de Sesión</h3>
+    <div class="stopwatch-display" id="stopwatch-display">00:00<span class="stopwatch-ms" id="stopwatch-ms">.00</span></div>
+    <p class="stopwatch-label" id="stopwatch-label">Listo para empezar</p>
+    <div class="stopwatch-controls">
+      <button class="btn-primary stopwatch-start-btn" id="stopwatch-start-btn">Iniciar</button>
+      <button class="btn-ghost stopwatch-reset-btn" id="stopwatch-reset-btn">Reiniciar</button>
+    </div>
+    <button class="stopwatch-lap-btn" id="stopwatch-lap-btn" style="display:none;">🏁 Registrar vuelta</button>
+    <div class="stopwatch-laps" id="stopwatch-laps"></div>
+  </div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div id="toast" class="toast"></div>
+
+<script src="js/supabase.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
