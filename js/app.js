@@ -385,30 +385,54 @@ async function initApp() {
   initSupabase();
   showScreen('screen-loading');
 
-  // Detect OAuth error (e.g. user cancelled Google login)
+  // Detect OAuth cancel/error in query params
   const urlParams = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
-  const oauthError = urlParams.get('error') || hashParams.get('error');
-
+  const oauthError = urlParams.get('error');
   if (oauthError) {
-    // Clean the URL without reloading
     window.history.replaceState({}, document.title, window.location.pathname);
-    if (oauthError === 'access_denied') {
-      // User cancelled — just go to welcome silently
-      showScreen('screen-welcome');
-      return;
-    } else {
-      showToast('Error al iniciar sesión. Intentá de nuevo.');
-      showScreen('screen-welcome');
-      return;
-    }
+    if (oauthError !== 'access_denied') showToast('Error al iniciar sesión. Intentá de nuevo.');
+    showScreen('screen-welcome');
+    return;
   }
 
-  // Check for active session (includes OAuth redirect return)
+  // Detect cancel in hash fragment (#error=access_denied)
+  const hashStr = window.location.hash.replace('#', '');
+  const hashParams = new URLSearchParams(hashStr);
+  const hashError = hashParams.get('error');
+  if (hashError) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+    if (hashError !== 'access_denied') showToast('Error al iniciar sesión. Intentá de nuevo.');
+    showScreen('screen-welcome');
+    return;
+  }
+
+  // If hash contains access_token, Supabase SDK needs a moment to process it
+  const hasToken = hashStr.includes('access_token=');
+  if (hasToken) {
+    // Small wait for SDK to parse hash and establish session
+    await new Promise(resolve => setTimeout(resolve, 600));
+    // Clean the ugly hash from the URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // Now read session (will have it if token was in hash)
   const session = await getSession();
 
   if (session) {
     currentUserId = session.user.id;
+    // Pre-fill name from Google metadata if no profile yet
+    if (!S.profile && session.user.user_metadata) {
+      const meta = session.user.user_metadata;
+      const firstName = (meta.full_name || meta.name || '').split(' ')[0];
+      if (firstName) {
+        S.profile = {
+          name: firstName,
+          age: 0, weight: 0, height: 0, sex: '',
+          createdAt: dateStrAR(),
+          googleAvatar: meta.avatar_url || meta.picture || null,
+        };
+      }
+    }
     try {
       const cloudData = await dbLoadAllUserData(currentUserId);
       if (cloudData) hydrateFromCloud(cloudData);
@@ -417,13 +441,11 @@ async function initApp() {
     }
   }
 
-  // Listen for future auth changes (logout, token refresh, etc.)
+  // Auth state listener for future changes
   let initialRouteDone = false;
-
   if (sb) {
     sb.auth.onAuthStateChange(async (event, newSession) => {
       if (!initialRouteDone) return;
-
       if (event === 'SIGNED_IN' && newSession) {
         currentUserId = newSession.user.id;
         try {
@@ -433,7 +455,6 @@ async function initApp() {
         const profile = S.profile;
         if (profile) { renderHome(); showScreen('screen-home'); }
         else showScreen('screen-register');
-
       } else if (event === 'SIGNED_OUT') {
         currentUserId = null;
         clearLocalData();
@@ -525,6 +546,7 @@ function saveProfile() {
     height: isNaN(height) ? 0 : height,
     sex,
     createdAt: existing?.createdAt || dateStrAR(),
+    googleAvatar: existing?.googleAvatar || null,
   };
   renderHome();
   if (existing) {
@@ -775,7 +797,17 @@ function renderHome() {
   const name = p?.name || '';
   const initial = name.charAt(0).toUpperCase() || '?';
   document.getElementById('home-greeting').textContent = `${greeting}${name ? ',' : '!'}`;
-  document.getElementById('profile-avatar-letter').textContent = initial;
+  const avatar = p?.googleAvatar;
+  const avatarEl = document.getElementById('profile-avatar-letter');
+  if (avatar) {
+    avatarEl.style.backgroundImage = `url(${avatar})`;
+    avatarEl.style.backgroundSize = 'cover';
+    avatarEl.style.backgroundPosition = 'center';
+    avatarEl.textContent = '';
+  } else {
+    avatarEl.style.backgroundImage = '';
+    avatarEl.textContent = initial;
+  }
   const totalEx   = S.routines.reduce((acc, r) => acc + Object.values(r.days || {}).reduce((a, d) => a + (d.exercises || []).length, 0), 0);
   const totalSess = Object.values(S.history).reduce((acc, h) => acc + (h.entries?.length || 0), 0);
   document.getElementById('home-stats-row').innerHTML = `
@@ -2251,7 +2283,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- WELCOME ----
   document.getElementById('btn-register').addEventListener('click', () => {
     document.querySelectorAll('.sex-btn').forEach(b => b.classList.remove('selected'));
-    ['reg-name','reg-age','reg-weight','reg-height'].forEach(id => document.getElementById(id).value = '');
+    clearFormErrors();
+    // Pre-fill name from existing partial profile (e.g. from Google login)
+    const existing = S.profile;
+    document.getElementById('reg-name').value = existing?.name || '';
+    document.getElementById('reg-age').value = existing?.age || '';
+    document.getElementById('reg-weight').value = existing?.weight || '';
+    document.getElementById('reg-height').value = existing?.height || '';
+    if (existing?.sex) {
+      document.querySelectorAll('.sex-btn').forEach(b =>
+        b.classList.toggle('selected', b.dataset.sex === existing.sex));
+    }
     showScreen('screen-register');
   });
 
