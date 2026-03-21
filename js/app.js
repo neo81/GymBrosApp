@@ -468,19 +468,18 @@ async function initApp() {
     }
 
     try {
-      // If fresh OAuth login (had token in hash), push local data first
-      // then merge with cloud (cloud takes priority for real completed data)
-      if (hasToken) await pushLocalToCloud();
-
       const cloudData = await dbLoadAllUserData(currentUserId);
       if (cloudData) hydrateFromCloud(cloudData);
 
       // Ensure Google avatar is preserved even after cloud load
       const googleMeta = session.user.user_metadata;
-      if (googleMeta && S.profile) {
+      if (googleMeta) {
         const avatarUrl = googleMeta.avatar_url || googleMeta.picture;
-        if (avatarUrl && !S.profile.googleAvatar) {
-          S.profile = { ...S.profile, googleAvatar: avatarUrl };
+        if (avatarUrl) {
+          const cur = S.profile;
+          if (cur && !cur.googleAvatar) {
+            S.profile = { ...cur, googleAvatar: avatarUrl };
+          }
         }
       }
     } catch (e) {
@@ -548,11 +547,17 @@ async function handleLogout() {
     okLabel: 'Cerrar sesión',
     cb: async () => {
       closeConfirm();
-      // Push all local data to cloud before clearing
-      showToast('Guardando datos...');
-      await pushLocalToCloud();
-      await signOut();
-      // onAuthStateChange fires SIGNED_OUT → clearLocalData + screen-welcome
+      showToast('Cerrando sesión...');
+      try {
+        await pushLocalToCloud();
+      } catch(e) { /* continue anyway */ }
+      try {
+        await signOut();
+      } catch(e) { /* continue anyway */ }
+      // Don't wait for onAuthStateChange — navigate directly
+      currentUserId = null;
+      clearLocalData();
+      showScreen('screen-welcome', true);
     }
   });
 }
@@ -602,12 +607,7 @@ function saveProfile() {
     createdAt: existing?.createdAt || dateStrAR(),
     googleAvatar: existing?.googleAvatar || null,
   };
-  // Force immediate cloud sync — push everything
-  if (currentUserId) {
-    pushLocalToCloud()
-      .then(() => console.log('[DB] all data synced ✅'))
-      .catch(e => showToast('⚠️ Sin conexión. Datos guardados localmente.'));
-  }
+
   renderHome();
   if (isRealExisting) {
     renderProfileScreen();
@@ -616,6 +616,13 @@ function saveProfile() {
   } else {
     showScreen('screen-home');
     showToast(`¡Bienvenido/a, ${name}! 💪`);
+  }
+
+  // Cloud sync after navigation (non-blocking)
+  if (currentUserId) {
+    pushLocalToCloud()
+      .then(() => console.log('[DB] synced ✅'))
+      .catch(e => console.warn('[DB] sync error:', e.message));
   }
 }
 
@@ -743,15 +750,16 @@ function renderProfileScreen() {
 
 function openEditProfile() {
   const p = S.profile;
-  if (!p) return;
-  // Populate modal fields
+  if (!p) { console.warn('[openEditProfile] no profile'); return; }
+  const modal = document.getElementById('modal-edit-profile');
+  if (!modal) { console.warn('[openEditProfile] modal not found'); return; }
   document.getElementById('modal-edit-name').value = p.name || '';
-  document.getElementById('modal-edit-age').value = p.age || '';
-  document.getElementById('modal-edit-weight').value = p.weight || '';
-  document.getElementById('modal-edit-height').value = p.height || '';
+  document.getElementById('modal-edit-age').value = p.age > 0 ? p.age : '';
+  document.getElementById('modal-edit-weight').value = p.weight > 0 ? p.weight : '';
+  document.getElementById('modal-edit-height').value = p.height > 0 ? p.height : '';
   document.querySelectorAll('#modal-edit-sex-selector .sex-btn').forEach(b =>
     b.classList.toggle('selected', b.dataset.sex === p.sex));
-  document.getElementById('modal-edit-profile').style.display = 'flex';
+  modal.style.display = 'flex';
 }
 
 function closeEditProfileModal() {
