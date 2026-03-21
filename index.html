@@ -424,6 +424,52 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: EDIT PROFILE ===================== -->
+<div id="modal-edit-profile" class="modal-overlay modal-centered" style="display:none;">
+  <div class="modal-card" style="width:100%;max-width:380px;padding:24px 20px 28px;">
+    <button class="modal-close" onclick="closeEditProfileModal()">✕</button>
+    <h3 class="modal-title">Editar perfil</h3>
+
+    <div class="form-section" style="padding:0 0 12px;">
+      <label class="form-label">Nombre</label>
+      <input type="text" id="modal-edit-name" class="form-input" autocomplete="off" placeholder="Tu nombre"/>
+    </div>
+    <div class="form-row" style="padding:0 0 12px;">
+      <div class="form-half" style="padding-right:8px;">
+        <label class="form-label">Edad</label>
+        <div class="input-unit-wrap">
+          <input type="number" id="modal-edit-age" class="form-input" inputmode="numeric" min="10" max="99" placeholder="25"/>
+          <span class="input-unit">años</span>
+        </div>
+      </div>
+      <div class="form-half">
+        <label class="form-label">Sexo</label>
+        <div class="sex-selector" id="modal-edit-sex-selector">
+          <button class="sex-btn" data-sex="M" onclick="selectEditSex(this)">♂ Masc</button>
+          <button class="sex-btn" data-sex="F" onclick="selectEditSex(this)">♀ Fem</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row" style="padding:0 0 20px;">
+      <div class="form-half" style="padding-right:8px;">
+        <label class="form-label">Peso</label>
+        <div class="input-unit-wrap">
+          <input type="number" id="modal-edit-weight" class="form-input" inputmode="decimal" step="0.5" min="30" max="300" placeholder="75"/>
+          <span class="input-unit">kg</span>
+        </div>
+      </div>
+      <div class="form-half">
+        <label class="form-label">Altura</label>
+        <div class="input-unit-wrap">
+          <input type="number" id="modal-edit-height" class="form-input" inputmode="numeric" min="100" max="250" placeholder="175"/>
+          <span class="input-unit">cm</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary btn-block" onclick="saveInlineEdit()">Guardar cambios</button>
+  </div>
+</div>
+
 <!-- ===================== TOAST ===================== -->
 <div id="toast" class="toast"></div>
 

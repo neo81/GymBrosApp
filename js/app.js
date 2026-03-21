@@ -667,52 +667,6 @@ function renderProfileScreen() {
       </div>
     </div>
 
-    <div class="profile-edit-section" id="profile-edit-section" style="display:none;">
-      <div class="profile-edit-header">
-        <span class="profile-edit-title">✏️ Editar datos</span>
-        <button class="profile-edit-cancel" onclick="toggleProfileEdit(false)">Cancelar</button>
-      </div>
-      <div class="profile-edit-body">
-        <div class="form-section" style="padding:10px 0 8px;">
-          <label class="form-label">Nombre</label>
-          <input type="text" id="edit-name" class="form-input" value="${p.name}" autocomplete="off"/>
-        </div>
-        <div class="form-row">
-          <div class="form-section form-half" style="padding:0 8px 8px 0;">
-            <label class="form-label">Edad</label>
-            <div class="input-unit-wrap">
-              <input type="number" id="edit-age" class="form-input" value="${p.age || ''}" inputmode="numeric" min="10" max="99" placeholder="25"/>
-              <span class="input-unit">años</span>
-            </div>
-          </div>
-          <div class="form-section form-half" style="padding:0 0 8px 0;">
-            <label class="form-label">Sexo</label>
-            <div class="sex-selector" id="edit-sex-selector">
-              <button class="sex-btn${p.sex === 'M' ? ' selected' : ''}" data-sex="M" onclick="selectEditSex(this)">♂ Masc</button>
-              <button class="sex-btn${p.sex === 'F' ? ' selected' : ''}" data-sex="F" onclick="selectEditSex(this)">♀ Fem</button>
-            </div>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-section form-half" style="padding:0 8px 8px 0;">
-            <label class="form-label">Peso</label>
-            <div class="input-unit-wrap">
-              <input type="number" id="edit-weight" class="form-input" value="${p.weight || ''}" inputmode="decimal" step="0.5" min="30" max="300" placeholder="75"/>
-              <span class="input-unit">kg</span>
-            </div>
-          </div>
-          <div class="form-section form-half" style="padding:0 0 8px 0;">
-            <label class="form-label">Altura</label>
-            <div class="input-unit-wrap">
-              <input type="number" id="edit-height" class="form-input" value="${p.height || ''}" inputmode="numeric" min="100" max="250" placeholder="175"/>
-              <span class="input-unit">cm</span>
-            </div>
-          </div>
-        </div>
-        <button class="btn-primary btn-block" onclick="saveInlineEdit()">Guardar cambios</button>
-      </div>
-    </div>
-
     <div class="profile-theme-card">
       <div class="profile-theme-info">
         <span class="profile-theme-icon">${isLight ? '☀️' : '🌙'}</span>
@@ -733,12 +687,27 @@ function renderProfileScreen() {
   `;
 }
 
+function openEditProfile() {
+  const p = S.profile;
+  if (!p) return;
+  // Populate modal fields
+  document.getElementById('modal-edit-name').value = p.name || '';
+  document.getElementById('modal-edit-age').value = p.age || '';
+  document.getElementById('modal-edit-weight').value = p.weight || '';
+  document.getElementById('modal-edit-height').value = p.height || '';
+  document.querySelectorAll('#modal-edit-sex-selector .sex-btn').forEach(b =>
+    b.classList.toggle('selected', b.dataset.sex === p.sex));
+  document.getElementById('modal-edit-profile').style.display = 'flex';
+}
+
+function closeEditProfileModal() {
+  document.getElementById('modal-edit-profile').style.display = 'none';
+}
+
 function toggleProfileEdit(open) {
-  const section = document.getElementById('profile-edit-section');
-  if (!section) return;
-  section.style.display = open ? 'block' : 'none';
-  const editBtn = document.getElementById('btn-edit-profile');
-  if (editBtn) editBtn.textContent = open ? 'Cerrar' : 'Editar';
+  // Now just delegates to modal
+  if (open) openEditProfile();
+  else closeEditProfileModal();
 }
 
 function selectEditSex(btn) {
@@ -747,11 +716,12 @@ function selectEditSex(btn) {
 }
 
 function saveInlineEdit() {
-  const name   = document.getElementById('edit-name')?.value.trim();
-  const ageRaw = document.getElementById('edit-age')?.value.trim();
-  const wRaw   = document.getElementById('edit-weight')?.value.trim();
-  const hRaw   = document.getElementById('edit-height')?.value.trim();
-  const sex    = document.querySelector('#edit-sex-selector .sex-btn.selected')?.dataset.sex || S.profile?.sex || '';
+  const name   = document.getElementById('modal-edit-name')?.value.trim();
+  const ageRaw = document.getElementById('modal-edit-age')?.value.trim();
+  const wRaw   = document.getElementById('modal-edit-weight')?.value.trim();
+  const hRaw   = document.getElementById('modal-edit-height')?.value.trim();
+  const sex    = document.querySelector('#modal-edit-sex-selector .sex-btn.selected')?.dataset.sex || S.profile?.sex || '';
+
   if (!name || name.length < 2) { showToast('El nombre debe tener al menos 2 caracteres.'); return; }
   const age    = ageRaw ? parseInt(ageRaw)    : 0;
   const weight = wRaw   ? parseFloat(wRaw)    : 0;
@@ -759,8 +729,10 @@ function saveInlineEdit() {
   if (ageRaw    && (isNaN(age)    || age < 10    || age > 99))    { showToast('Edad entre 10 y 99 años.');    return; }
   if (wRaw      && (isNaN(weight) || weight < 30 || weight > 300)){ showToast('Peso entre 30 y 300 kg.');    return; }
   if (hRaw      && (isNaN(height) || height < 100|| height > 250)){ showToast('Altura entre 100 y 250 cm.'); return; }
+
   S.profile = { ...S.profile, name, age, weight, height, sex };
   if (currentUserId) dbSaveProfile(currentUserId, S.profile).catch(e => console.warn('Profile sync:', e));
+  closeEditProfileModal();
   renderHome();
   renderProfileScreen();
   showToast('Perfil actualizado ✅');
@@ -2342,11 +2314,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- PROFILE ----
   document.getElementById('back-home-from-profile').addEventListener('click', () => showScreen('screen-home'));
-  document.getElementById('btn-edit-profile').addEventListener('click', () => {
-    const section = document.getElementById('profile-edit-section');
-    const isOpen = section && section.style.display !== 'none';
-    toggleProfileEdit(!isOpen);
-  });
+  document.getElementById('btn-edit-profile').addEventListener('click', openEditProfile);
 
   // ---- CREATE ROUTINE ----
   document.getElementById('back-to-home-cr').addEventListener('click', () => showScreen('screen-home'));
@@ -2525,6 +2493,7 @@ window.moveExercise = moveExercise;
 window.toggleProfileEdit = toggleProfileEdit;
 window.selectEditSex = selectEditSex;
 window.saveInlineEdit = saveInlineEdit;
+window.closeEditProfileModal = closeEditProfileModal;
 window.selectSpecialGroup = selectSpecialGroup;
 window.confirmDeleteRoutineFromHome = confirmDeleteRoutineFromHome;
 window.showCoreExerciseList = showCoreExerciseList;

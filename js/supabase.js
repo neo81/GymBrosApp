@@ -58,65 +58,72 @@ async function getUser() {
 
 // Upsert profile row for the current user
 async function dbSaveProfile(userId, profile) {
-  if (!sb) return;
-  await sb.from('profiles').upsert({
+  if (!sb) { console.warn('[DB] Supabase not initialized'); return; }
+  const { error } = await sb.from('profiles').upsert({
     user_id: userId,
     data: profile,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
+  if (error) console.error('[DB] saveProfile error:', error.message, error.code, error.details);
+  else console.log('[DB] profile saved ✅');
 }
 
 async function dbLoadProfile(userId) {
   if (!sb) return null;
-  const { data } = await sb.from('profiles').select('data').eq('user_id', userId).single();
+  const { data, error } = await sb.from('profiles').select('data').eq('user_id', userId).single();
+  if (error && error.code !== 'PGRST116') console.error('[DB] loadProfile error:', error.message);
   return data?.data || null;
 }
 
-// Upsert routines (stored as a single JSON array per user)
 async function dbSaveRoutines(userId, routines) {
   if (!sb) return;
-  await sb.from('routines').upsert({
+  const { error } = await sb.from('routines').upsert({
     user_id: userId,
     data: routines,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
+  if (error) console.error('[DB] saveRoutines error:', error.message);
+  else console.log('[DB] routines saved ✅');
 }
 
 async function dbLoadRoutines(userId) {
   if (!sb) return null;
-  const { data } = await sb.from('routines').select('data').eq('user_id', userId).single();
+  const { data, error } = await sb.from('routines').select('data').eq('user_id', userId).single();
+  if (error && error.code !== 'PGRST116') console.error('[DB] loadRoutines error:', error.message);
   return data?.data || null;
 }
 
-// Upsert history
 async function dbSaveHistory(userId, history) {
   if (!sb) return;
-  await sb.from('history').upsert({
+  const { error } = await sb.from('history').upsert({
     user_id: userId,
     data: history,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
+  if (error) console.error('[DB] saveHistory error:', error.message);
 }
 
 async function dbLoadHistory(userId) {
   if (!sb) return null;
-  const { data } = await sb.from('history').select('data').eq('user_id', userId).single();
+  const { data, error } = await sb.from('history').select('data').eq('user_id', userId).single();
+  if (error && error.code !== 'PGRST116') console.error('[DB] loadHistory error:', error.message);
   return data?.data || null;
 }
 
-// Upsert favs
 async function dbSaveFavs(userId, favs) {
   if (!sb) return;
-  await sb.from('favs').upsert({
+  const { error } = await sb.from('favs').upsert({
     user_id: userId,
     data: favs,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
+  if (error) console.error('[DB] saveFavs error:', error.message);
 }
 
 async function dbLoadFavs(userId) {
   if (!sb) return null;
-  const { data } = await sb.from('favs').select('data').eq('user_id', userId).single();
+  const { data, error } = await sb.from('favs').select('data').eq('user_id', userId).single();
+  if (error && error.code !== 'PGRST116') console.error('[DB] loadFavs error:', error.message);
   return data?.data || null;
 }
 
