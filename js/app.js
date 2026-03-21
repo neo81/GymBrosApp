@@ -552,6 +552,8 @@ function saveProfile() {
     createdAt: existing?.createdAt || dateStrAR(),
     googleAvatar: existing?.googleAvatar || null,
   };
+  // Force immediate cloud sync (don't wait for debounce)
+  if (currentUserId) dbSaveProfile(currentUserId, S.profile).catch(e => console.warn('Profile sync:', e));
   renderHome();
   if (isRealExisting) {
     renderProfileScreen();
@@ -621,7 +623,11 @@ function renderProfileScreen() {
   document.getElementById('profile-content').innerHTML = `
     <div class="profile-card">
       <div class="profile-card-header">
-        <div class="profile-big-avatar">${initial}</div>
+        <div class="profile-big-avatar">
+          ${p.googleAvatar
+            ? `<img src="${p.googleAvatar}" class="profile-big-avatar-img" alt="${initial}"/>`
+            : initial}
+        </div>
         <div class="profile-card-header-info">
           <div class="profile-card-name">${p.name}</div>
           <div class="profile-card-sub">${p.sex === 'M' ? '♂ Masculino' : p.sex === 'F' ? '♀ Femenino' : '⬜ Sin especificar'}${p.age ? ` · ${p.age} años` : ''}</div>
@@ -754,6 +760,7 @@ function saveInlineEdit() {
   if (wRaw      && (isNaN(weight) || weight < 30 || weight > 300)){ showToast('Peso entre 30 y 300 kg.');    return; }
   if (hRaw      && (isNaN(height) || height < 100|| height > 250)){ showToast('Altura entre 100 y 250 cm.'); return; }
   S.profile = { ...S.profile, name, age, weight, height, sex };
+  if (currentUserId) dbSaveProfile(currentUserId, S.profile).catch(e => console.warn('Profile sync:', e));
   renderHome();
   renderProfileScreen();
   showToast('Perfil actualizado ✅');
@@ -838,7 +845,7 @@ function renderHome() {
   list.innerHTML = routines.map(r => {
     const days     = Object.keys(r.days || {}).sort((a,b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
     const totalExR = Object.values(r.days || {}).reduce((a, d) => a + (d.exercises || []).length, 0);
-    const dayPills = days.map(d => `<span class="day-pill">${d === 'CORE' ? '🧱 Core' : d.slice(0,3)}</span>`).join('');
+    const dayPills = days.map(d => `<span class="day-pill">${d === 'CORE' ? 'Core' : d.slice(0,3)}</span>`).join('');
     const lastDate = lastSessionMap[r.id];
     return `
       <div class="routine-card" onclick="openRoutineDetail('${r.id}')">
@@ -1644,7 +1651,7 @@ function buildAccordionHTML(days, r, openDay = null) {
       <div class="accordion-item${isOpen ? ' open' : ''}">
         <button class="accordion-header" onclick="toggleAccordion(this)">
           <div class="accordion-header-left">
-            <span class="accordion-pill">DÍA: ${day.toUpperCase()}</span>
+            <span class="accordion-pill">${day.toUpperCase()}</span>
             <div class="accordion-divider"></div>
           </div>
           <div class="accordion-header-right">
@@ -1707,7 +1714,7 @@ function toggleAccordion(btn) {
   // Persist which day is open so re-entering the view restores it
   const pill = item.querySelector('.accordion-pill');
   if (pill) {
-    const dayLabel = pill.textContent.replace('DÍA: ', '').trim();
+    const dayLabel = pill.textContent.trim();
     // Map label back to actual day key (pill is uppercase)
     const r = S.routines.find(x => x.id === ctx.detailRoutineId);
     if (r) {
