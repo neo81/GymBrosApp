@@ -252,13 +252,25 @@ function showToast(msg, ms = 2400) {
   t._to = setTimeout(() => t.classList.remove('show'), ms);
 }
 
-function showScreen(id) {
+function showScreen(id, back = false) {
   const current = document.querySelector('.screen.active');
   const next = document.getElementById(id);
+  if (!next) return;
   if (current && current !== next) {
     current.classList.remove('active');
-    current.classList.add('slide-out');
-    setTimeout(() => current.classList.remove('slide-out'), 360);
+    if (back) {
+      // Going back: current exits to right, next enters from left (already at -28% or 0 from before)
+      current.classList.add('slide-back');
+      next.style.transform = 'translateX(-28%)';
+      next.offsetHeight; // force reflow
+      next.style.transform = '';
+    } else {
+      current.classList.add('slide-out');
+    }
+    setTimeout(() => {
+      current.classList.remove('slide-out', 'slide-back');
+      next.style.transform = '';
+    }, 360);
   }
   next.classList.add('active');
   next.scrollTop = 0;
@@ -553,7 +565,11 @@ function saveProfile() {
     googleAvatar: existing?.googleAvatar || null,
   };
   // Force immediate cloud sync (don't wait for debounce)
-  if (currentUserId) dbSaveProfile(currentUserId, S.profile).catch(e => console.warn('Profile sync:', e));
+  if (currentUserId) {
+    dbSaveProfile(currentUserId, S.profile)
+      .then(() => console.log('[DB] profile saved ✅'))
+      .catch(e => { console.error('[DB] saveProfile failed:', e); showToast('⚠️ Error al guardar: ' + e.message); });
+  }
   renderHome();
   if (isRealExisting) {
     renderProfileScreen();
@@ -2286,8 +2302,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('back-welcome-from-register').addEventListener('click', () => {
-    if (S.profile) showScreen('screen-profile');
-    else showScreen('screen-welcome');
+    if (S.profile) showScreen('screen-profile', true);
+    else showScreen('screen-welcome', true);
   });
 
   // ---- SEX SELECTOR ----
@@ -2312,11 +2328,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ---- PROFILE ----
-  document.getElementById('back-home-from-profile').addEventListener('click', () => showScreen('screen-home'));
+  document.getElementById('back-home-from-profile').addEventListener('click', () => showScreen('screen-home', true));
   document.getElementById('btn-edit-profile').addEventListener('click', openEditProfile);
 
   // ---- CREATE ROUTINE ----
-  document.getElementById('back-to-home-cr').addEventListener('click', () => showScreen('screen-home'));
+  document.getElementById('back-to-home-cr').addEventListener('click', () => showScreen('screen-home', true));
   document.getElementById('save-routine-btn').addEventListener('click', saveRoutineFn);
   document.getElementById('days-selector').addEventListener('click', e => {
     const btn = e.target.closest('.day-btn');
@@ -2325,8 +2341,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- SELECT MUSCLE ----
   document.getElementById('back-to-routine').addEventListener('click', () => {
-    if (ctx.returnToDetail) { ctx.returnToDetail = false; showScreen('screen-routine-detail'); }
-    else showScreen('screen-create-routine');
+    if (ctx.returnToDetail) { ctx.returnToDetail = false; showScreen('screen-routine-detail', true); }
+    else showScreen('screen-create-routine', true);
   });
   document.getElementById('rotate-body-btn').addEventListener('click', rotateBody);
   document.getElementById('muscle-search').addEventListener('input', e => {
@@ -2356,23 +2372,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- CONFIGURE EXERCISE ----
   document.getElementById('back-to-exercises').addEventListener('click', () => {
-    if (ctx.returnToDetail) {
-      // Came from detail → go back to exercise list (which came from detail)
-      showScreen('screen-exercise-list');
-    } else {
-      showScreen('screen-exercise-list');
-    }
+    showScreen('screen-exercise-list', true);
   });
   // Back from exercise list
   document.getElementById('back-to-muscle').addEventListener('click', () => {
     if (ctx.returnToDetail) {
       ctx.returnToDetail = false;
-      showScreen('screen-routine-detail');
+      showScreen('screen-routine-detail', true);
     } else if (ctx.day === 'CORE') {
-      // CORE skips the muscle figure — go back to routine creation directly
-      showScreen('screen-create-routine');
+      showScreen('screen-create-routine', true);
     } else {
-      showScreen('screen-select-muscle');
+      showScreen('screen-select-muscle', true);
     }
   });
   document.getElementById('save-exercise-btn').addEventListener('click', saveExerciseFn);
@@ -2400,9 +2410,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('instructions-panel').style.display = 'none';
   });
 
-  document.getElementById('back-from-progress').addEventListener('click', () => showScreen('screen-home'));
+  document.getElementById('back-from-progress').addEventListener('click', () => showScreen('screen-home', true));
   // ---- ROUTINE DETAIL ----
-  document.getElementById('back-to-home-from-detail').addEventListener('click', () => showScreen('screen-home'));
+  document.getElementById('back-to-home-from-detail').addEventListener('click', () => showScreen('screen-home', true));
   document.getElementById('edit-routine-btn').addEventListener('click', () => startEditRoutine(ctx.detailRoutineId));
   document.getElementById('delete-routine-btn').addEventListener('click', deleteRoutine);
   document.getElementById('btn-open-rest')?.addEventListener('click', openTimerModal);

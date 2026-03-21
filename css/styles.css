@@ -93,7 +93,9 @@ input, textarea, select {
   z-index: 1;
 }
 .screen.active { transform: translateX(0); z-index: 10; }
-.screen.slide-out { transform: translateX(-28%); z-index: 5; }
+.screen.slide-out  { transform: translateX(-28%); z-index: 5; }   /* going forward: old slides left */
+.screen.slide-back { transform: translateX(100%); z-index: 5; }   /* going back:    old slides right */
+.screen.slide-in-back { transform: translateX(0); }               /* coming from right (back nav) */
 
 /* ---- TOPBAR ---- */
 .topbar {
