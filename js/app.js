@@ -382,19 +382,33 @@ function hydrateFromCloud(data) {
 
 async function initApp() {
   initTheme();
-
-  // Init Supabase
   initSupabase();
-
-  // Show loading indicator briefly
   showScreen('screen-loading');
 
-  // Check for active session
+  // Detect OAuth error (e.g. user cancelled Google login)
+  const urlParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+  const oauthError = urlParams.get('error') || hashParams.get('error');
+
+  if (oauthError) {
+    // Clean the URL without reloading
+    window.history.replaceState({}, document.title, window.location.pathname);
+    if (oauthError === 'access_denied') {
+      // User cancelled — just go to welcome silently
+      showScreen('screen-welcome');
+      return;
+    } else {
+      showToast('Error al iniciar sesión. Intentá de nuevo.');
+      showScreen('screen-welcome');
+      return;
+    }
+  }
+
+  // Check for active session (includes OAuth redirect return)
   const session = await getSession();
 
   if (session) {
     currentUserId = session.user.id;
-    // Fetch latest data from cloud and hydrate localStorage
     try {
       const cloudData = await dbLoadAllUserData(currentUserId);
       if (cloudData) hydrateFromCloud(cloudData);
@@ -403,15 +417,23 @@ async function initApp() {
     }
   }
 
-  // Listen for auth state changes (login/logout/token refresh)
+  // Listen for future auth changes (logout, token refresh, etc.)
+  let initialRouteDone = false;
+
   if (sb) {
-    sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        currentUserId = session.user.id;
-        const cloudData = await dbLoadAllUserData(currentUserId);
-        if (cloudData) hydrateFromCloud(cloudData);
-        renderHome();
-        showScreen('screen-home');
+    sb.auth.onAuthStateChange(async (event, newSession) => {
+      if (!initialRouteDone) return;
+
+      if (event === 'SIGNED_IN' && newSession) {
+        currentUserId = newSession.user.id;
+        try {
+          const cloudData = await dbLoadAllUserData(currentUserId);
+          if (cloudData) hydrateFromCloud(cloudData);
+        } catch (e) { /* use local */ }
+        const profile = S.profile;
+        if (profile) { renderHome(); showScreen('screen-home'); }
+        else showScreen('screen-register');
+
       } else if (event === 'SIGNED_OUT') {
         currentUserId = null;
         clearLocalData();
@@ -420,28 +442,34 @@ async function initApp() {
     });
   }
 
-  // Route based on local state (works offline too)
+  // Initial routing
   const profile = S.profile;
   if (profile) {
     renderHome();
     showScreen('screen-home');
   } else if (session) {
-    // Logged in with Google but no profile filled yet
     showScreen('screen-register');
   } else {
     showScreen('screen-welcome');
   }
+
+  initialRouteDone = true;
 }
 
 async function handleGoogleLogin() {
   const btn = document.getElementById('btn-google-login');
-  if (btn) { btn.disabled = true; btn.textContent = 'Conectando...'; }
+  const label = btn?.querySelector('.google-btn-label');
+  if (btn) btn.disabled = true;
+  if (label) label.textContent = 'Conectando...';
+
   const { error } = await signInWithGoogle();
+
   if (error) {
     showToast('Error al conectar con Google. Intentá de nuevo.');
-    if (btn) { btn.disabled = false; btn.textContent = 'Continuar con Google'; }
+    if (btn) btn.disabled = false;
+    if (label) label.textContent = 'Continuar con Google';
   }
-  // On success, the page redirects — onAuthStateChange handles the rest
+  // On success the page redirects to Google — return handled by getSession() on reload
 }
 
 async function handleLogout() {
