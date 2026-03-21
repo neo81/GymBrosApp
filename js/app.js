@@ -539,6 +539,10 @@ function saveProfile() {
   if (hasError) return;
 
   const existing = S.profile;
+  // A "real" existing profile has been completed by the user (has createdAt set properly)
+  // A partial Google profile only has name + googleAvatar, no age/weight/height
+  const isRealExisting = existing && (existing.age > 0 || existing.weight > 0 || existing.height > 0);
+
   S.profile = {
     name,
     age: isNaN(age) ? 0 : age,
@@ -549,7 +553,7 @@ function saveProfile() {
     googleAvatar: existing?.googleAvatar || null,
   };
   renderHome();
-  if (existing) {
+  if (isRealExisting) {
     renderProfileScreen();
     showScreen('screen-profile');
     showToast('Perfil actualizado ✅');
@@ -798,15 +802,16 @@ function renderHome() {
   const initial = name.charAt(0).toUpperCase() || '?';
   document.getElementById('home-greeting').textContent = `${greeting}${name ? ',' : '!'}`;
   const avatar = p?.googleAvatar;
-  const avatarEl = document.getElementById('profile-avatar-letter');
-  if (avatar) {
-    avatarEl.style.backgroundImage = `url(${avatar})`;
-    avatarEl.style.backgroundSize = 'cover';
-    avatarEl.style.backgroundPosition = 'center';
-    avatarEl.textContent = '';
+  const avatarImg  = document.getElementById('profile-avatar-img');
+  const avatarLetter = document.getElementById('profile-avatar-letter');
+  if (avatar && avatarImg) {
+    avatarImg.src = avatar;
+    avatarImg.style.display = 'block';
+    avatarLetter.style.display = 'none';
   } else {
-    avatarEl.style.backgroundImage = '';
-    avatarEl.textContent = initial;
+    if (avatarImg) avatarImg.style.display = 'none';
+    avatarLetter.style.display = '';
+    avatarLetter.textContent = initial;
   }
   const totalEx   = S.routines.reduce((acc, r) => acc + Object.values(r.days || {}).reduce((a, d) => a + (d.exercises || []).length, 0), 0);
   const totalSess = Object.values(S.history).reduce((acc, h) => acc + (h.entries?.length || 0), 0);
@@ -2330,7 +2335,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ---- PROFILE ----
   document.getElementById('back-home-from-profile').addEventListener('click', () => showScreen('screen-home'));
-  document.getElementById('btn-edit-profile').addEventListener('click', openEditProfile);
+  document.getElementById('btn-edit-profile').addEventListener('click', () => {
+    const section = document.getElementById('profile-edit-section');
+    const isOpen = section && section.style.display !== 'none';
+    toggleProfileEdit(!isOpen);
+  });
 
   // ---- CREATE ROUTINE ----
   document.getElementById('back-to-home-cr').addEventListener('click', () => showScreen('screen-home'));

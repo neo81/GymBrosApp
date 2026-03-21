@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0F0F1A" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="GymBros" />
   <title>GymBros</title>
+  <meta name="theme-color" content="#0F0F1A" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#F5F4FF" media="(prefers-color-scheme: light)" />
+  <link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.svg" />
   <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -47,7 +50,7 @@
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
           <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
         </svg>
-        Continuar con Google
+        <span class="google-btn-label">Continuar con Google</span>
       </button>
       <button class="btn-ghost btn-large" id="btn-register">Usar sin cuenta</button>
     </div>
@@ -123,6 +126,7 @@
           <span class="theme-icon-light">☀️</span>
         </button>
         <button class="profile-avatar-btn" id="btn-open-profile" title="Mi perfil">
+          <img id="profile-avatar-img" class="profile-avatar-img" style="display:none;" alt="avatar"/>
           <span id="profile-avatar-letter">?</span>
         </button>
       </div>

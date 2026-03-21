@@ -211,9 +211,12 @@ input, textarea, select {
   border: 2px solid var(--accent);
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; font-weight: 700; color: var(--accent-light);
-  flex-shrink: 0; transition: all 0.2s;
+  flex-shrink: 0; transition: all 0.2s; overflow: hidden;
 }
 .profile-avatar-btn:active { transform: scale(0.94); }
+.profile-avatar-img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+}
 .home-stats-row {
   display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px;
 }
