@@ -6,7 +6,7 @@
 
 // ⚠️  Reemplazá con tu API key de Groq:
 // https://console.groq.com/keys
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = '';
 const GROQ_URL     = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL   = 'llama-3.3-70b-versatile'; // alternativa: 'mixtral-8x7b-32768'
 
