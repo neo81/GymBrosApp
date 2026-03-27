@@ -1,14 +1,14 @@
 // =============================================
 //  AI ROUTINE GENERATOR — GymBros
-//  Uses Groq API — llama-3.3-70b-versatile (free tier)
-//  Get your free API key at: https://console.groq.com
+//  Uses Google Gemini 2.0 Flash — production model
+//  Get your free API key at: https://aistudio.google.com/app/apikey
 // =============================================
 
-// ⚠️  Reemplazá con tu API key de Groq:
-// https://console.groq.com/keys
-const GROQ_API_KEY = '';
-const GROQ_URL     = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL   = 'llama-3.3-70b-versatile'; // alternativa: 'mixtral-8x7b-32768'
+// ⚠️  Reemplazá con tu API key de Google AI Studio:
+// https://aistudio.google.com/app/apikey
+const GEMINI_API_KEY = 'AIzaSyAyf6MqjL-xbX3s_qrekF1ZWz6zPpoNt2I';
+const GEMINI_MODEL   = 'gemini-2.0-flash';
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 // =============================================
 //  MAIN: Generate routine
@@ -18,25 +18,22 @@ async function generateAIRoutine(formData) {
   const prompt = buildPrompt(formData);
 
   const body = {
-    model: GROQ_MODEL,
-    temperature: 0.7,
-    max_tokens: 2048,
-    response_format: { type: 'json_object' },
-    messages: [
-      {
-        role: 'system',
-        content: 'Sos un entrenador personal experto. Respondés ÚNICAMENTE con JSON válido, sin texto extra, sin explicaciones, sin markdown.',
-      },
-      { role: 'user', content: prompt },
-    ],
+    contents: [{
+      parts: [{ text: prompt }]
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 2048,
+      responseMimeType: 'application/json',
+    },
+    systemInstruction: {
+      parts: [{ text: 'Sos un entrenador personal experto. Respondés ÚNICAMENTE con JSON válido, sin texto extra, sin explicaciones, sin markdown.' }]
+    }
   };
 
-  const res = await fetch(GROQ_URL, {
+  const res = await fetch(GEMINI_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
@@ -46,7 +43,7 @@ async function generateAIRoutine(formData) {
   }
 
   const data = await res.json();
-  const text = data?.choices?.[0]?.message?.content;
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error('Respuesta vacía de la IA.');
 
   const clean = text.replace(/```json|```/g, '').trim();
@@ -265,9 +262,9 @@ async function onGenerateRoutine() {
   } catch (err) {
     document.getElementById('ai-loading').style.display = 'none';
     document.getElementById('ai-generate-btn').disabled = false;
-    const isApiKey = err.message.includes('API key') || err.message.includes('401') || err.message.includes('Invalid API Key');
+    const isApiKey = err.message.includes('API key') || err.message.includes('401') || err.message.includes('API_KEY_INVALID');
     errEl.textContent = isApiKey
-      ? '⚠️ API key de Groq no configurada. Revisá js/ai.js.'
+      ? '⚠️ API key de Gemini no configurada. Revisá js/ai.js.'
       : `Error: ${err.message}`;
     errEl.style.display = 'block';
   }
