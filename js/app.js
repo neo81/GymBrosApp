@@ -1093,6 +1093,9 @@ function saveRoutineFn() {
   else routines.push(ctx.routine);
   S.routines = routines;
 
+  // Sync only this routine to cloud (not all)
+  if (currentUserId) dbSaveRoutine(currentUserId, ctx.routine).catch(e => console.warn('[DB] saveRoutine:', e));
+
   renderHome();
   showToast('¡Rutina guardada! 💪');
 
@@ -1882,6 +1885,8 @@ function recordHistory(routineId, day, exIdx, series, exerciseKey) {
 }
 
 function saveDetailEdits() {
+  const r = S.routines.find(x => x.id === ctx.detailRoutineId);
+  if (currentUserId && r) dbSaveRoutine(currentUserId, r).catch(e => console.warn('[DB]:', e));
   showToast('Cambios guardados ✅');
   renderRoutineDetailView();
   document.getElementById('edit-routine-btn').textContent = 'Editar';
@@ -1937,6 +1942,7 @@ function confirmDeleteRoutineFromHome(routineId, routineName) {
     okLabel: 'Eliminar',
     cb: () => {
       S.routines = S.routines.filter(x => x.id !== routineId);
+      if (currentUserId) dbDeleteRoutine(routineId).catch(e => console.warn('[DB] deleteRoutine:', e));
       closeConfirm();
       renderHome();
       showToast('Rutina eliminada');
@@ -1953,7 +1959,9 @@ function deleteRoutine() {
     msg: `Se eliminará "${r.name}" con todos sus días y ejercicios.`,
     okLabel: 'Eliminar rutina',
     cb: () => {
-      S.routines = S.routines.filter(x => x.id !== ctx.detailRoutineId);
+      const routineId = ctx.detailRoutineId;
+      S.routines = S.routines.filter(x => x.id !== routineId);
+      if (currentUserId) dbDeleteRoutine(routineId).catch(e => console.warn('[DB] deleteRoutine:', e));
       closeConfirm();
       renderHome();
       showToast('Rutina eliminada');
@@ -2309,6 +2317,29 @@ function startTimer() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  // ---- AI ROUTINE ----
+  document.getElementById('btn-ai-routine')?.addEventListener('click', openAIModal);
+  // Level selector buttons
+  document.getElementById('ai-level-group')?.addEventListener('click', e => {
+    const btn = e.target.closest('.ai-level-btn');
+    if (!btn) return;
+    document.querySelectorAll('.ai-level-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('ai-level').value = btn.dataset.value;
+  });
+  // Days selector buttons
+  document.getElementById('ai-days-group')?.addEventListener('click', e => {
+    const btn = e.target.closest('.ai-days-btn');
+    if (!btn) return;
+    document.querySelectorAll('.ai-days-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('ai-days').value = btn.dataset.value;
+  });
+  // Close AI modal on overlay click
+  document.getElementById('modal-ai-routine')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-ai-routine')) closeAIModal();
+  });
+
   initApp();
 
   // ---- WELCOME ----
@@ -2530,6 +2561,10 @@ window.handleProfileThemeToggle = handleProfileThemeToggle;
 // Part 3
 window.handleLogout = handleLogout;
 window.handleGoogleLogin = handleGoogleLogin;
+window.openAIModal = openAIModal;
+window.closeAIModal = closeAIModal;
+window.onGenerateRoutine = onGenerateRoutine;
+window.onSaveAIRoutine = onSaveAIRoutine;
 window.moveExercise = moveExercise;
 window.toggleProfileEdit = toggleProfileEdit;
 window.selectEditSex = selectEditSex;

@@ -5,26 +5,20 @@
 const SUPABASE_URL  = 'https://inbfezuypeneqjjusuug.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluYmZlenV5cGVuZXFqanVzdXVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNjM4MzAsImV4cCI6MjA4OTYzOTgzMH0.cxJp0LdJlVqcTErytKRsQI6e0LR20kdOjiT7suL126A';
 
-// We load Supabase from CDN (added in index.html).
-// This wrapper provides a single `sb` instance used everywhere.
 let sb = null;
 
 function initSupabase() {
   if (window.supabase) {
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      }
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
     });
   } else {
-    console.warn('Supabase SDK not loaded — running in local-only mode.');
+    console.warn('[DB] Supabase SDK not loaded — running in local-only mode.');
   }
   return sb;
 }
 
-// ---- AUTH HELPERS ----
+// ---- AUTH ----
 
 async function signInWithGoogle() {
   if (!sb) return { error: { message: 'Supabase not initialized' } };
@@ -48,93 +42,109 @@ async function getSession() {
   return data?.session || null;
 }
 
-async function getUser() {
-  if (!sb) return null;
-  const session = await getSession();
-  return session?.user || null;
-}
+// ---- PROFILE ----
 
-// ---- DATABASE HELPERS ----
-
-// Upsert profile row for the current user
 async function dbSaveProfile(userId, profile) {
-  if (!sb) { console.warn('[DB] Supabase not initialized'); return; }
-  const { error } = await sb.from('profiles').upsert({
-    user_id: userId,
-    data: profile,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' });
-  if (error) console.error('[DB] saveProfile error:', error.message, error.code, error.details);
+  if (!sb) return;
+  const { error } = await sb.from('profiles').upsert(
+    { user_id: userId, data: profile, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+  if (error) console.error('[DB] saveProfile:', error.message);
   else console.log('[DB] profile saved ✅');
 }
 
 async function dbLoadProfile(userId) {
   if (!sb) return null;
   const { data, error } = await sb.from('profiles').select('data').eq('user_id', userId).single();
-  if (error && error.code !== 'PGRST116') console.error('[DB] loadProfile error:', error.message);
+  if (error && error.code !== 'PGRST116') console.error('[DB] loadProfile:', error.message);
   return data?.data || null;
 }
 
-async function dbSaveRoutines(userId, routines) {
-  if (!sb) return;
+// ---- ROUTINES (one row per routine) ----
+
+async function dbSaveRoutine(userId, routine) {
+  if (!sb || !routine?.id) return;
   const { error } = await sb.from('routines').upsert({
-    user_id: userId,
-    data: routines,
+    id: routine.id, user_id: userId,
+    name: routine.name || '', data: routine,
     updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' });
-  if (error) console.error('[DB] saveRoutines error:', error.message);
-  else console.log('[DB] routines saved ✅');
+  }, { onConflict: 'id' });
+  if (error) console.error('[DB] saveRoutine:', error.message);
+}
+
+async function dbDeleteRoutine(routineId) {
+  if (!sb || !routineId) return;
+  const { error } = await sb.from('routines').delete().eq('id', routineId);
+  if (error) console.error('[DB] deleteRoutine:', error.message);
+  else console.log('[DB] routine deleted ✅');
+}
+
+async function dbSaveRoutines(userId, routines) {
+  if (!sb || !routines?.length) return;
+  const rows = routines.map(r => ({
+    id: r.id, user_id: userId, name: r.name || '',
+    data: r, updated_at: new Date().toISOString(),
+  }));
+  const { error } = await sb.from('routines').upsert(rows, { onConflict: 'id' });
+  if (error) console.error('[DB] saveRoutines:', error.message);
+  else console.log(`[DB] ${routines.length} routines saved ✅`);
 }
 
 async function dbLoadRoutines(userId) {
   if (!sb) return null;
-  const { data, error } = await sb.from('routines').select('data').eq('user_id', userId).single();
-  if (error && error.code !== 'PGRST116') console.error('[DB] loadRoutines error:', error.message);
-  return data?.data || null;
+  const { data, error } = await sb.from('routines')
+    .select('data').eq('user_id', userId)
+    .order('updated_at', { ascending: true });
+  if (error) { console.error('[DB] loadRoutines:', error.message); return null; }
+  return data?.map(row => row.data) || [];
 }
+
+// ---- HISTORY ----
 
 async function dbSaveHistory(userId, history) {
   if (!sb) return;
-  const { error } = await sb.from('history').upsert({
-    user_id: userId,
-    data: history,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' });
-  if (error) console.error('[DB] saveHistory error:', error.message);
+  const { error } = await sb.from('history').upsert(
+    { user_id: userId, data: history, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+  if (error) console.error('[DB] saveHistory:', error.message);
 }
 
 async function dbLoadHistory(userId) {
   if (!sb) return null;
   const { data, error } = await sb.from('history').select('data').eq('user_id', userId).single();
-  if (error && error.code !== 'PGRST116') console.error('[DB] loadHistory error:', error.message);
+  if (error && error.code !== 'PGRST116') console.error('[DB] loadHistory:', error.message);
   return data?.data || null;
 }
 
+// ---- FAVS ----
+
 async function dbSaveFavs(userId, favs) {
   if (!sb) return;
-  const { error } = await sb.from('favs').upsert({
-    user_id: userId,
-    data: favs,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'user_id' });
-  if (error) console.error('[DB] saveFavs error:', error.message);
+  const { error } = await sb.from('favs').upsert(
+    { user_id: userId, data: favs, updated_at: new Date().toISOString() },
+    { onConflict: 'user_id' }
+  );
+  if (error) console.error('[DB] saveFavs:', error.message);
 }
 
 async function dbLoadFavs(userId) {
   if (!sb) return null;
   const { data, error } = await sb.from('favs').select('data').eq('user_id', userId).single();
-  if (error && error.code !== 'PGRST116') console.error('[DB] loadFavs error:', error.message);
+  if (error && error.code !== 'PGRST116') console.error('[DB] loadFavs:', error.message);
   return data?.data || null;
 }
 
-// Load ALL user data in one batch (called on login/app start)
+// ---- LOAD ALL (called on login) ----
+
 async function dbLoadAllUserData(userId) {
   if (!sb) return null;
-  const [p, r, h, f] = await Promise.all([
+  const [profile, routines, history, favs] = await Promise.all([
     dbLoadProfile(userId),
     dbLoadRoutines(userId),
     dbLoadHistory(userId),
     dbLoadFavs(userId),
   ]);
-  return { profile: p, routines: r, history: h, favs: f };
+  return { profile, routines, history, favs };
 }

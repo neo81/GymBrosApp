@@ -10,10 +10,7 @@
   <meta name="theme-color" content="#0F0F1A" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#F5F4FF" media="(prefers-color-scheme: light)" />
   <link rel="icon" type="image/svg+xml" href="icons/favicon.svg" />
-  <link rel="icon" type="image/png" href="icons/favicon-96x96.png" sizes="96x96" />
-  <link rel="shortcut icon" href="icons/favicon.ico" />
-  <link rel="apple-touch-icon"  href="icons/apple-touch-icon-dark.png" media="screen and (prefers-color-scheme: dark)" />
-  <link rel="apple-touch-icon"  href="icons/apple-touch-icon-light.png" media="screen and (prefers-color-scheme: light)" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.svg" />
   <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -139,6 +136,9 @@
   <div class="home-actions">
     <button class="btn-primary btn-large" id="btn-new-routine">
       <span class="btn-icon">＋</span> Nueva Rutina
+    </button>
+    <button class="btn-ai" id="btn-ai-routine" onclick="openAIModal()">
+      <span class="btn-ai-icon">✨</span> Generar con IA
     </button>
   </div>
   <div class="section-title-row">
@@ -473,10 +473,128 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: AI ROUTINE GENERATOR ===================== -->
+<div id="modal-ai-routine" class="modal-overlay modal-centered" style="display:none;">
+  <div class="modal-card ai-modal-card">
+    <button class="modal-close" onclick="closeAIModal()">✕</button>
+    <div class="ai-modal-header">
+      <span class="ai-modal-icon">✨</span>
+      <h3 class="ai-modal-title">Generar Rutina con IA</h3>
+      <p class="ai-modal-subtitle">Completá los datos y la IA diseña tu rutina personalizada</p>
+    </div>
+
+    <form id="ai-form" onsubmit="return false;">
+
+      <!-- Objetivo -->
+      <div class="ai-field">
+        <label class="form-label">Objetivo <span class="ai-required">*</span></label>
+        <select id="ai-goal" class="form-input ai-select">
+          <option value="">Seleccioná tu objetivo...</option>
+          <option value="muscle">💪 Ganar músculo (hipertrofia)</option>
+          <option value="strength">🏆 Aumentar fuerza</option>
+          <option value="fat_loss">🔥 Perder grasa (definición)</option>
+          <option value="endurance">🏃 Resistencia y cardio</option>
+          <option value="wellness">🧘 Bienestar general</option>
+        </select>
+      </div>
+
+      <!-- Nivel -->
+      <div class="ai-field">
+        <label class="form-label">Nivel <span class="ai-required">*</span></label>
+        <div class="ai-level-btns" id="ai-level-group">
+          <button type="button" class="ai-level-btn" data-value="beginner">🌱 Principiante</button>
+          <button type="button" class="ai-level-btn" data-value="intermediate">⚡ Intermedio</button>
+          <button type="button" class="ai-level-btn" data-value="advanced">🔥 Avanzado</button>
+        </div>
+        <input type="hidden" id="ai-level" value=""/>
+      </div>
+
+      <!-- Días -->
+      <div class="ai-field">
+        <label class="form-label">Días por semana <span class="ai-required">*</span></label>
+        <div class="ai-days-btns" id="ai-days-group">
+          <button type="button" class="ai-days-btn" data-value="2">2</button>
+          <button type="button" class="ai-days-btn" data-value="3">3</button>
+          <button type="button" class="ai-days-btn" data-value="4">4</button>
+          <button type="button" class="ai-days-btn" data-value="5">5</button>
+          <button type="button" class="ai-days-btn" data-value="6">6</button>
+        </div>
+        <input type="hidden" id="ai-days" value=""/>
+      </div>
+
+      <!-- Equipamiento -->
+      <div class="ai-field">
+        <label class="form-label">Equipamiento disponible <span class="ai-required">*</span></label>
+        <select id="ai-equipment" class="form-input ai-select">
+          <option value="">Seleccioná el equipamiento...</option>
+          <option value="gym">🏋️ Gimnasio completo</option>
+          <option value="home">🏠 Casa con pesas</option>
+          <option value="minimal">🤸 Solo peso corporal</option>
+        </select>
+      </div>
+
+      <!-- Lesión -->
+      <div class="ai-field">
+        <label class="form-label">Lesiones o limitaciones físicas</label>
+        <input type="text" id="ai-injury" class="form-input"
+          placeholder="Ej: rodilla derecha, espalda baja, hombro izquierdo..."/>
+        <p class="ai-field-hint">La IA evitará ejercicios que comprometan esas zonas</p>
+      </div>
+
+      <!-- Extra -->
+      <div class="ai-field">
+        <label class="form-label">Información adicional</label>
+        <textarea id="ai-extra" class="form-input ai-textarea"
+          placeholder="Ej: prefiero no hacer sentadillas, quiero enfocarme en piernas..."></textarea>
+      </div>
+
+      <!-- Error -->
+      <p class="ai-error-msg" id="ai-error-msg" style="display:none;"></p>
+
+      <!-- Generate button -->
+      <button type="button" class="btn-ai-generate" id="ai-generate-btn" onclick="onGenerateRoutine()">
+        ✨ Generar rutina
+      </button>
+    </form>
+
+    <!-- Loading -->
+    <div class="ai-loading" id="ai-loading" style="display:none;">
+      <div class="ai-loading-spinner"></div>
+      <p>La IA está diseñando tu rutina...</p>
+    </div>
+
+    <!-- Result section -->
+    <div id="ai-result-section" style="display:none;">
+      <div class="ai-result-divider">
+        <span>Tu rutina generada</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="ai-preview-stats" id="ai-preview-summary"></div>
+
+      <!-- Day breakdown -->
+      <div class="ai-preview-days-wrap" id="ai-preview-days"></div>
+
+      <!-- Routine name -->
+      <div class="ai-field" style="margin-top:12px;">
+        <label class="form-label">Nombre de la rutina</label>
+        <input type="text" id="ai-routine-name" class="form-input" placeholder="Nombre de la rutina..."/>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="ai-result-actions">
+        <button class="btn-ghost" onclick="onGenerateRoutine()">↻ Regenerar</button>
+        <button class="btn-primary" onclick="onSaveAIRoutine()">💾 Guardar rutina</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== TOAST ===================== -->
 <div id="toast" class="toast"></div>
 
 <script src="js/supabase.js"></script>
+<script src="js/ai.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
