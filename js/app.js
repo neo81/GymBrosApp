@@ -874,7 +874,7 @@ function renderHome() {
   list.innerHTML = routines.map(r => {
     const days     = Object.keys(r.days || {}).sort((a,b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
     const totalExR = Object.values(r.days || {}).reduce((a, d) => a + (d.exercises || []).length, 0);
-    const dayPills = days.map(d => `<span class="day-pill">${d === 'CORE' ? 'Core' : d.slice(0,3)}</span>`).join('');
+    const dayPills = days.map(d => `<span class="day-pill">${d}</span>`).join('');
     const lastDate = lastSessionMap[r.id];
     return `
       <div class="routine-card" onclick="openRoutineDetail('${r.id}')">
@@ -957,29 +957,26 @@ function startEditRoutine(routineId) {
 
 function toggleDayBtn(btn) {
   const day = btn.dataset.day;
-  const ALL = ['CORE','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const ALL = ['Día 1','Día 2','Día 3','Día 4','Día 5','Día 6','Día 7'];
 
   if (day === 'Todos') {
-    const allSel = ALL.filter(d => d !== 'CORE').every(d => selectedDays.includes(d));
+    const allSel = ALL.every(d => selectedDays.includes(d));
     document.querySelectorAll('.day-btn:not(.day-btn-all)').forEach(b => {
       b.classList.toggle('selected', !allSel);
     });
-    selectedDays = allSel ? [] : [...ALL.filter(d => d !== 'CORE')];
-    // Include CORE only if it was already selected
+    selectedDays = allSel ? [] : [...ALL];
   } else {
     btn.classList.toggle('selected');
     const idx = selectedDays.indexOf(day);
     if (idx < 0) {
       selectedDays.push(day);
-      ctx.day = day; // ← jump to the newly selected day
+      ctx.day = day;
     } else {
       selectedDays.splice(idx, 1);
-      // If we deselected the current day, move to first available
       if (ctx.day === day) ctx.day = selectedDays[0] || null;
     }
   }
 
-  // Init empty day data for newly selected days
   selectedDays.forEach(d => {
     if (!ctx.routine.days[d]) ctx.routine.days[d] = { exercises: [] };
   });
@@ -1008,7 +1005,7 @@ function removeDay(day) {
   }
 }
 
-const DAY_ORDER = ['CORE','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DAY_ORDER = ['CORE','Día 1','Día 2','Día 3','Día 4','Día 5','Día 6','Día 7'];
 
 function renderDayTabs() {
   const sorted = [...selectedDays].sort((a,b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
@@ -1125,7 +1122,6 @@ function saveRoutineFn() {
 // =============================================
 
 function goToSelectMuscle() {
-  // If current day is CORE → skip the body figure, go directly to core/cardio exercise list
   if (ctx.day === 'CORE') {
     ctx.muscle = 'core';
     showCoreExerciseList();
@@ -1140,7 +1136,6 @@ function goToSelectMuscle() {
 }
 
 function showCoreExerciseList() {
-  // Merge core + cardio exercises for the CORE day
   const coreExercises = [
     ...(EXERCISES_DB['core'] || []),
     ...(EXERCISES_DB['cardio'] || []),
@@ -1156,6 +1151,7 @@ function showCoreExerciseList() {
   renderExerciseCards(coreExercises);
   showScreen('screen-exercise-list');
 }
+
 
 function buildBodySVG(muscles) {
   const isFront  = ctx.bodyFront;
@@ -2327,28 +2323,7 @@ function startTimer() {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // ---- AI ROUTINE ----
-  document.getElementById('btn-ai-routine')?.addEventListener('click', openAIModal);
-  // Level selector buttons
-  document.getElementById('ai-level-group')?.addEventListener('click', e => {
-    const btn = e.target.closest('.ai-level-btn');
-    if (!btn) return;
-    document.querySelectorAll('.ai-level-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('ai-level').value = btn.dataset.value;
-  });
-  // Days selector buttons
-  document.getElementById('ai-days-group')?.addEventListener('click', e => {
-    const btn = e.target.closest('.ai-days-btn');
-    if (!btn) return;
-    document.querySelectorAll('.ai-days-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('ai-days').value = btn.dataset.value;
-  });
-  // Close AI modal on overlay click
-  document.getElementById('modal-ai-routine')?.addEventListener('click', e => {
-    if (e.target === document.getElementById('modal-ai-routine')) closeAIModal();
-  });
+  // ---- AI ROUTINE — REMOVED ----
 
   initApp();
 
@@ -2571,10 +2546,6 @@ window.handleProfileThemeToggle = handleProfileThemeToggle;
 // Part 3
 window.handleLogout = handleLogout;
 window.handleGoogleLogin = handleGoogleLogin;
-window.openAIModal = openAIModal;
-window.closeAIModal = closeAIModal;
-window.onGenerateRoutine = onGenerateRoutine;
-window.onSaveAIRoutine = onSaveAIRoutine;
 window.moveExercise = moveExercise;
 window.toggleProfileEdit = toggleProfileEdit;
 window.selectEditSex = selectEditSex;
