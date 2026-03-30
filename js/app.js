@@ -221,6 +221,7 @@ let ctx = {
   currentUnit: 'kg',
   swMs: 0, swRunning: false, swInterval: null, swLaps: [],
   openAccordionDay: null,
+  audioCtx: null,
 };
 
 // =============================================
@@ -2329,6 +2330,17 @@ function startTimer() {
     document.getElementById('timer-display').className = 'timer-display';
     return;
   }
+
+  // Create/resume AudioContext on user gesture — required for iOS PWA
+  try {
+    if (!ctx.audioCtx) {
+      ctx.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (ctx.audioCtx.state === 'suspended') {
+      ctx.audioCtx.resume();
+    }
+  } catch(e) { /* audio not available */ }
+
   ctx.timerRunning = true;
   document.getElementById('start-timer-btn').textContent = 'Pausar';
   document.getElementById('timer-display').className = 'timer-display running';
@@ -2339,23 +2351,25 @@ function startTimer() {
       document.getElementById('timer-display').className = 'timer-display finished';
       document.getElementById('timer-display').textContent = '00:00';
       document.getElementById('start-timer-btn').textContent = '¡Listo!';
-      // Vibration: two short + one long
+      // Vibration
       if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
-      // Beep via Web Audio API (3 ascending tones)
+      // Beep — uses the already-running AudioContext (iOS safe)
       try {
-        const ac = new (window.AudioContext || window.webkitAudioContext)();
-        [[880, 0, 0.15], [880, 0.2, 0.15], [1100, 0.4, 0.35]].forEach(([freq, start, dur]) => {
-          const o = ac.createOscillator();
-          const g = ac.createGain();
-          o.connect(g); g.connect(ac.destination);
-          o.type = 'sine';
-          o.frequency.value = freq;
-          g.gain.setValueAtTime(0.4, ac.currentTime + start);
-          g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + start + dur);
-          o.start(ac.currentTime + start);
-          o.stop(ac.currentTime + start + dur);
-        });
-      } catch(e) { /* audio not supported */ }
+        const ac = ctx.audioCtx;
+        if (ac && ac.state === 'running') {
+          [[880, 0, 0.15], [880, 0.2, 0.15], [1100, 0.4, 0.4]].forEach(([freq, start, dur]) => {
+            const o = ac.createOscillator();
+            const g = ac.createGain();
+            o.connect(g); g.connect(ac.destination);
+            o.type = 'sine';
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.5, ac.currentTime + start);
+            g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + start + dur);
+            o.start(ac.currentTime + start);
+            o.stop(ac.currentTime + start + dur + 0.05);
+          });
+        }
+      } catch(e) { /* audio failed */ }
       return;
     }
     ctx.timerSeconds--;
