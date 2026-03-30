@@ -265,23 +265,40 @@ function showToast(msg, ms = 2400) {
 function showScreen(id, back = false) {
   const current = document.querySelector('.screen.active');
   const next = document.getElementById(id);
-  if (!next) return;
-  if (current && current !== next) {
+  if (!next || next === current) return;
+
+  if (current) {
     current.classList.remove('active');
     if (back) {
-      // Going back: current exits to right, next enters from left (already at -28% or 0 from before)
-      current.classList.add('slide-back');
-      next.style.transform = 'translateX(-28%)';
+      // Exiting screen slides RIGHT
+      current.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+      current.style.transform  = 'translateX(100%)';
+      // Entering screen comes from LEFT
+      next.style.transition = 'none';
+      next.style.transform  = 'translateX(-100%)';
       next.offsetHeight; // force reflow
-      next.style.transform = '';
+      next.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+      next.style.transform  = 'translateX(0)';
     } else {
-      current.classList.add('slide-out');
+      // Exiting screen slides LEFT
+      current.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+      current.style.transform  = 'translateX(-28%)';
+      // Entering screen comes from RIGHT (default CSS: translateX(100%))
+      next.style.transition = 'none';
+      next.style.transform  = 'translateX(100%)';
+      next.offsetHeight;
+      next.style.transition = 'transform 0.32s cubic-bezier(0.4,0,0.2,1)';
+      next.style.transform  = 'translateX(0)';
     }
     setTimeout(() => {
-      current.classList.remove('slide-out', 'slide-back');
-      next.style.transform = '';
-    }, 360);
+      current.style.transform  = '';
+      current.style.transition = '';
+    }, 350);
+  } else {
+    next.style.transform  = 'translateX(0)';
+    next.style.transition = '';
   }
+
   next.classList.add('active');
   next.scrollTop = 0;
 }
@@ -738,7 +755,17 @@ function renderProfileScreen() {
     </div>
 
     <div class="profile-danger-zone">
-      ${currentUserId ? `<button class="btn-logout" onclick="handleLogout()">👋 Cerrar sesión</button>` : ''}
+      ${currentUserId ? `
+      <div class="profile-session-card">
+        <div class="profile-session-info">
+          <div class="profile-session-title">Sesión activa</div>
+          <div class="profile-session-sub">Sincronizado con Google</div>
+        </div>
+        <button class="btn-logout" onclick="handleLogout()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Cerrar sesión
+        </button>
+      </div>` : ''}
       <button class="btn-danger-outline" onclick="confirmDeleteProfile()">🗑 Eliminar perfil y todos los datos</button>
     </div>
   `;
@@ -1627,13 +1654,16 @@ function openRoutineDetail(id) {
 function buildDetailExCard(ex, ei, day, exercises) {
   const isFirst = ei === 0, isLast = ei === exercises.length - 1;
   const primaryMuscle = (ex.muscles || [])[0] || '';
-  const seriesRows = (ex.series || []).map((s, si) =>
-    `<tr>
+  const seriesRows = (ex.series || []).map((s, si) => {
+    const unit = s.unit || 'kg';
+    const weight = s.weight ? `${s.weight} ${unit}` : '—';
+    const reps = s.reps ? (unit === 'seg' || unit === 'min' ? `${s.reps} ${unit}` : `${s.reps} reps`) : '—';
+    return `<tr>
       <td class="ds-num">${si + 1}</td>
-      <td class="ds-val">${s.reps || '—'}</td>
-      <td class="ds-val">${s.weight ? `${s.weight} ${s.unit || 'kg'}` : '—'}</td>
-    </tr>`
-  ).join('');
+      <td class="ds-val">${reps}</td>
+      <td class="ds-val">${weight}</td>
+    </tr>`;
+  }).join('');
 
   return `
     <div class="detail-exercise-card">
@@ -2309,7 +2339,23 @@ function startTimer() {
       document.getElementById('timer-display').className = 'timer-display finished';
       document.getElementById('timer-display').textContent = '00:00';
       document.getElementById('start-timer-btn').textContent = '¡Listo!';
-      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+      // Vibration: two short + one long
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
+      // Beep via Web Audio API (3 ascending tones)
+      try {
+        const ac = new (window.AudioContext || window.webkitAudioContext)();
+        [[880, 0, 0.15], [880, 0.2, 0.15], [1100, 0.4, 0.35]].forEach(([freq, start, dur]) => {
+          const o = ac.createOscillator();
+          const g = ac.createGain();
+          o.connect(g); g.connect(ac.destination);
+          o.type = 'sine';
+          o.frequency.value = freq;
+          g.gain.setValueAtTime(0.4, ac.currentTime + start);
+          g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + start + dur);
+          o.start(ac.currentTime + start);
+          o.stop(ac.currentTime + start + dur);
+        });
+      } catch(e) { /* audio not supported */ }
       return;
     }
     ctx.timerSeconds--;
@@ -2488,8 +2534,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-save-manual-exercise').addEventListener('click', saveManualExercise);
 
   document.getElementById('confirm-cancel-btn').addEventListener('click', closeConfirm);
-  document.getElementById('confirm-ok-btn').addEventListener('click', () => {
-    if (ctx.confirmCb) ctx.confirmCb();
+  document.getElementById('confirm-ok-btn').addEventListener('click', async () => {
+    if (ctx.confirmCb) {
+      const cb = ctx.confirmCb;
+      ctx.confirmCb = null; // clear first to prevent double-click
+      await cb();
+    }
   });
   document.getElementById('modal-confirm').addEventListener('click', e => {
     if (e.target === document.getElementById('modal-confirm')) closeConfirm();

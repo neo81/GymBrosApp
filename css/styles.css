@@ -93,9 +93,6 @@ input, textarea, select {
   z-index: 1;
 }
 .screen.active { transform: translateX(0); z-index: 10; }
-.screen.slide-out  { transform: translateX(-28%); z-index: 5; }   /* going forward: old slides left */
-.screen.slide-back { transform: translateX(100%); z-index: 5; }   /* going back:    old slides right */
-.screen.slide-in-back { transform: translateX(0); }               /* coming from right (back nav) */
 
 /* ---- TOPBAR ---- */
 .topbar {
@@ -1392,14 +1389,24 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .sync-dot.offline { background: var(--text-dim); }
 
 /* Logout button */
+/* Profile session card + logout */
+.profile-session-card {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-2); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 10px;
+  transition: all 0.2s;
+}
+.profile-session-info { display: flex; flex-direction: column; gap: 2px; }
+.profile-session-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.profile-session-sub { font-size: 11px; color: var(--text-muted); }
 .btn-logout {
-  width: 100%; padding: 13px;
+  display: flex; align-items: center; gap: 7px;
   background: var(--bg-3); border: 1.5px solid var(--border-subtle);
   border-radius: var(--radius-lg); color: var(--text-muted);
-  font-size: 14px; font-weight: 600; margin-bottom: 10px;
-  transition: all 0.18s;
+  font-size: 13px; font-weight: 600; padding: 9px 14px;
+  transition: all 0.18s; white-space: nowrap; flex-shrink: 0;
 }
-.btn-logout:active { background: var(--bg-4); }
+.btn-logout:active { background: rgba(255,92,122,0.08); border-color: var(--danger); color: var(--danger); }
 
 /* Cloud sync badge on home avatar */
 .profile-avatar-wrap { position: relative; display: inline-block; }
